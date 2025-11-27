@@ -1,0 +1,19 @@
+# Environment
+.env
+wordpress/
+!wp-content/
+wp-content/uploads/
+wp-content/cache/
+docker/*.env
+
+# Node/npm caches if added later
+node_modules/
+playwright-report/
+test-results/
+blob-report/
+
+# macOS noise
+.DS_Store
+
+# Logs
+*.log

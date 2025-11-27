@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main", "develop"]
+
+jobs:
+  lint-and-validate:
+    runs-on: ubuntu-latest
+    env:
+      COMPOSE_FILE: docker/docker-compose.yml
+      CI_ENV_FILE: .github/env/ci.env
+      ASSETS_HOST_PATH: ${{ github.workspace }}/tests/assets
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck yamllint
+
+      - name: Shell lint (bin/*.sh)
+        run: shellcheck bin/*.sh
+
+      - name: YAML lint
+        run: |
+          yamllint .github/workflows docker/docker-compose.yml
+
+      - name: Validate Docker Compose config
+        run: |
+          mkdir -p "$ASSETS_HOST_PATH"
+          ASSETS_HOST_PATH="$ASSETS_HOST_PATH" docker compose --env-file "$CI_ENV_FILE" -f "$COMPOSE_FILE" config >/dev/null
+
+      - name: Build PHP-FPM image
+        run: |
+          ASSETS_HOST_PATH="$ASSETS_HOST_PATH" docker compose --env-file "$CI_ENV_FILE" -f "$COMPOSE_FILE" build wp
+
+      - name: List active plugins (dry run)
+        run: |
+          ASSETS_HOST_PATH="$ASSETS_HOST_PATH" docker compose --env-file "$CI_ENV_FILE" -f "$COMPOSE_FILE" run --rm -T wpcli php -v
+
+  e2e:
+    needs: lint-and-validate
+    runs-on: ubuntu-latest
+    env:
+      COMPOSE_FILE: docker/docker-compose.yml
+      CI_ENV_FILE: .github/env/ci.env
+      ASSETS_HOST_PATH: ${{ github.workspace }}/tests/assets
+      BASE_URL: http://localhost:8080
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Prepare Docker environment
+        run: |
+          cp "$CI_ENV_FILE" .env
+          echo "ASSETS_HOST_PATH=$ASSETS_HOST_PATH" >> .env
+          mkdir -p "$ASSETS_HOST_PATH"
+          ./bin/setup-wordpress.sh
+
+      - name: Run smoke tests
+        env:
+          BASE_URL: http://localhost:8080
+          WP_ADMIN_USER: ci-admin
+          WP_ADMIN_PASSWORD: ci-secret
+        run: npm run test:e2e
+
+      - name: Shutdown stack
+        if: always()
+        run: docker compose --env-file ./.env -f "$COMPOSE_FILE" down

@@ -1,0 +1,115 @@
+services:
+  db:
+    image: mariadb:10.11
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - storbystand
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    networks:
+      - storbystand
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+    networks:
+      - storbystand
+
+  wp:
+    build:
+      context: ..
+      dockerfile: docker/wp/Dockerfile
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      WORDPRESS_DB_HOST: ${DB_HOST}:${DB_PORT}
+      WORDPRESS_DB_NAME: ${DB_NAME}
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+      WORDPRESS_TABLE_PREFIX: ${WP_TABLE_PREFIX}
+      WORDPRESS_CONFIG_EXTRA: |
+        define( 'WP_ENVIRONMENT_TYPE', '${APP_ENV}' );
+        $$stb_port = getenv( 'APP_PORT' );
+        if ( $$stb_port && $$stb_port !== '80' ) {
+          $$stb_port = ':' . $$stb_port;
+        } else {
+          $$stb_port = '';
+        }
+        define( 'STB_APP_URL', '${WP_PROTOCOL}://${DOMAIN}' . $$stb_port );
+        define( 'WP_HOME', STB_APP_URL );
+        define( 'WP_SITEURL', STB_APP_URL );
+        define( 'WP_CACHE', true );
+        define( 'WP_REDIS_HOST', 'redis' );
+        define( 'WP_REDIS_PORT', 6379 );
+        define( 'WP_REDIS_DISABLED', false );
+        define( 'WP_MAIL_SMTP_HOST', 'mailhog' );
+        define( 'WP_MAIL_SMTP_PORT', 1025 );
+    volumes:
+      - ../wordpress:/var/www/html
+      - ../wp-content/plugins/stb-core:/var/www/html/wp-content/plugins/stb-core
+      - ../wp-content/plugins/stb-pwa:/var/www/html/wp-content/plugins/stb-pwa
+      - ../bin:/opt/storbystand/bin
+      - type: bind
+        source: ${ASSETS_HOST_PATH}
+        target: /mnt/assets
+        read_only: true
+    depends_on:
+      - db
+    networks:
+      - storbystand
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - ../wordpress:/var/www/html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - wp
+    networks:
+      - storbystand
+
+  wpcli:
+    image: wordpress:cli-php8.2
+    restart: "no"
+    env_file: ../.env
+    environment:
+      WORDPRESS_DB_HOST: ${DB_HOST}:${DB_PORT}
+      WORDPRESS_DB_NAME: ${DB_NAME}
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+      WP_CLI_PHP_ARGS: "-d memory_limit=512M"
+    volumes:
+      - ../wordpress:/var/www/html
+      - ../wp-content/plugins/stb-core:/var/www/html/wp-content/plugins/stb-core
+      - ../wp-content/plugins/stb-pwa:/var/www/html/wp-content/plugins/stb-pwa
+      - type: bind
+        source: ${ASSETS_HOST_PATH}
+        target: /mnt/assets
+        read_only: true
+    depends_on:
+      - db
+    networks:
+      - storbystand
+
+networks:
+  storbystand:
+    driver: bridge
+
+volumes:
+  db_data:
