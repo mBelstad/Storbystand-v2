@@ -1,0 +1,136 @@
+.stb-query-loop {
+	margin-bottom: 2rem;
+	font-family: inherit;
+}
+
+.stb-dashboard-section {
+	margin-bottom: 2.5rem;
+	padding: 1.5rem;
+	border-radius: 20px;
+	background: linear-gradient(145deg, #ffffff, #f4f6fb);
+	box-shadow: 0 15px 40px rgba(15, 23, 42, 0.08);
+}
+
+.stb-dashboard-column {
+	display: flex;
+	flex-direction: column;
+	gap: 1.2rem;
+}
+
+.stb-query-loop--cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 1rem;
+}
+
+.stb-card {
+	border: 1px solid rgba(0, 0, 0, 0.08);
+	border-radius: 12px;
+	padding: 1rem;
+	background: #fff;
+	box-shadow: 0 8px 16px rgba(0, 0, 0, 0.04);
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.stb-card__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	font-weight: 600;
+}
+
+.stb-badge {
+	display: inline-flex;
+	align-items: center;
+	border-radius: 999px;
+	padding: 0.1rem 0.6rem;
+	font-size: 0.78rem;
+	text-transform: capitalize;
+	background: #eef2ff;
+	color: #3b5bdb;
+}
+
+.stb-card__metric {
+	margin-top: 0.5rem;
+	font-size: 0.95rem;
+}
+
+.stb-query-loop--table table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.95rem;
+}
+
+.stb-query-loop--table th,
+.stb-query-loop--table td {
+	padding: 0.65rem 0.75rem;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+	text-align: left;
+}
+
+.stb-query-loop--timeline ul {
+	list-style: none;
+	padding-left: 0;
+	margin: 0;
+}
+
+.stb-query-loop--timeline li {
+	display: flex;
+	gap: 1rem;
+	padding: 0.9rem 0;
+	border-bottom: 1px dashed rgba(0, 0, 0, 0.08);
+}
+
+.stb-timeline__timestamp {
+	font-size: 0.8rem;
+	color: #6c6f76;
+	min-width: 140px;
+}
+
+.stb-query-loop__notice {
+	padding: 0.75rem 1rem;
+	background: #f8f9fa;
+	border-radius: 8px;
+	font-size: 0.9rem;
+}
+
+.stb-button-group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+}
+
+.stb-button-group .elementor-button {
+	border-radius: 999px;
+	padding: 0.4rem 1.1rem;
+	font-weight: 600;
+	background-color: #1d4ed8;
+	color: #fff;
+	box-shadow: 0 6px 18px rgba(29, 78, 216, 0.35);
+}
+
+.stb-button-group .elementor-button:hover {
+	background-color: #153eae;
+}
+
+.stb-placeholder-card {
+	padding: 1rem 1.25rem;
+	border-radius: 14px;
+	border: 1px dashed rgba(29, 78, 216, 0.3);
+	background: rgba(29, 78, 216, 0.05);
+	font-size: 0.92rem;
+	color: #0f172a;
+}
+
+@media (max-width: 768px) {
+	.stb-dashboard-section {
+		padding: 1rem;
+	}
+
+	.stb-query-loop--cards {
+		grid-template-columns: 1fr;
+	}
+}
+
