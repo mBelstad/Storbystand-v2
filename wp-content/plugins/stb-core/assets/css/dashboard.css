@@ -124,6 +124,41 @@
 	color: #0f172a;
 }
 
+.stb-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stb-button-group .elementor-button:focus {
+	outline: 2px solid #1d4ed8;
+	outline-offset: 2px;
+}
+
+.stb-query-loop--table th {
+	background: #f8f9fa;
+	font-weight: 600;
+}
+
+.stb-query-loop--table tr:hover {
+	background: #f8f9fa;
+}
+
+.stb-badge--warning {
+	background: #fef3c7;
+	color: #92400e;
+}
+
+.stb-badge--success {
+	background: #d1fae5;
+	color: #065f46;
+}
+
+.stb-badge--danger {
+	background: #fee2e2;
+	color: #991b1b;
+}
+
 @media (max-width: 768px) {
 	.stb-dashboard-section {
 		padding: 1rem;
@@ -131,6 +166,15 @@
 
 	.stb-query-loop--cards {
 		grid-template-columns: 1fr;
+	}
+
+	.stb-button-group {
+		flex-direction: column;
+	}
+
+	.stb-button-group .elementor-button {
+		width: 100%;
+		text-align: center;
 	}
 }
 

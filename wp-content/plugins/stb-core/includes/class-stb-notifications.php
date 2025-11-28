@@ -232,11 +232,23 @@ class Stb_Notification_Service {
 		return (string) ob_get_clean();
 	}
 
-	protected static function mark_sent( int $row_id, string $provider_id = '' ): void {
-		global $wpdb;
+	/**
+	 * Get JetEngine DB instance for notification queue CCT.
+	 *
+	 * @return \Jet_Engine\Modules\Custom_Content_Types\DB
+	 */
+	protected static function get_queue_db() {
+		if ( ! class_exists( '\Jet_Engine\Modules\Custom_Content_Types\DB' ) ) {
+			require_once jet_engine()->modules->modules_path( 'custom-content-types/inc/db.php' );
+		}
 
-		$wpdb->update(
-			self::queue_table(),
+		return new \Jet_Engine\Modules\Custom_Content_Types\DB( 'stb_notification_queue', array() );
+	}
+
+	protected static function mark_sent( int $row_id, string $provider_id = '' ): void {
+		$db = self::get_queue_db();
+
+		$db->update(
 			array(
 				'status'              => 'sent',
 				'processed_at'        => current_time( 'mysql' ),
@@ -244,34 +256,28 @@ class Stb_Notification_Service {
 				'last_error'          => '',
 				'cct_modified'        => current_time( 'mysql' ),
 			),
-			array( '_ID' => $row_id ),
-			array( '%s', '%s', '%s', '%s', '%s' ),
-			array( '%d' )
+			array( '_ID' => $row_id )
 		);
 	}
 
 	protected static function mark_failed( int $row_id, string $message ): void {
-		global $wpdb;
+		$db = self::get_queue_db();
 
-		$wpdb->update(
-			self::queue_table(),
+		$db->update(
 			array(
 				'status'       => 'failed',
 				'last_error'   => wp_strip_all_tags( $message ),
 				'processed_at' => current_time( 'mysql' ),
 				'cct_modified' => current_time( 'mysql' ),
 			),
-			array( '_ID' => $row_id ),
-			array( '%s', '%s', '%s', '%s' ),
-			array( '%d' )
+			array( '_ID' => $row_id )
 		);
 	}
 
 	protected static function queue_row( array $row, array $payload ): void {
-		global $wpdb;
+		$db = self::get_queue_db();
 
-		$wpdb->insert(
-			self::queue_table(),
+		$db->insert(
 			array(
 				'entity_type'         => sanitize_key( $row['entity_type'] ?? 'generic' ),
 				'entity_id'           => absint( $row['entity_id'] ?? 0 ),
@@ -287,26 +293,6 @@ class Stb_Notification_Service {
 				'processed_at'        => null,
 				'cct_status'          => 'publish',
 				'cct_author_id'       => get_current_user_id() ?: 0,
-				'cct_created'         => current_time( 'mysql' ),
-				'cct_modified'        => current_time( 'mysql' ),
-			),
-			array(
-				'%s',
-				'%d',
-				'%d',
-				'%s',
-				'%s',
-				'%s',
-				'%s',
-				'%s',
-				'%s',
-				'%s',
-				'%s',
-				'%s',
-				'%s',
-				'%d',
-				'%s',
-				'%s',
 			)
 		);
 	}
@@ -536,29 +522,41 @@ class Stb_Notification_Service {
 	}
 
 	protected static function get_shift( int $shift_id ): ?\stdClass {
-		global $wpdb;
+		$db = self::get_cct_db( 'stb_shifts' );
+		if ( ! $db ) {
+			return null;
+		}
 
-		$row = $wpdb->get_row(
-			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->prefix}jet_cct_stb_shifts WHERE _ID = %d",
-				$shift_id
-			)
-		);
-
-		return $row ?: null;
+		$item = $db->get_item( $shift_id );
+		return $item ? (object) $item : null;
 	}
 
 	protected static function get_assignment( int $assignment_id ): ?\stdClass {
-		global $wpdb;
+		$db = self::get_cct_db( 'stb_assignments' );
+		if ( ! $db ) {
+			return null;
+		}
 
-		$row = $wpdb->get_row(
-			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->prefix}jet_cct_stb_assignments WHERE _ID = %d",
-				$assignment_id
-			)
-		);
+		$item = $db->get_item( $assignment_id );
+		return $item ? (object) $item : null;
+	}
 
-		return $row ?: null;
+	/**
+	 * Get JetEngine DB instance for a CCT.
+	 *
+	 * @param string $slug CCT slug.
+	 * @return \Jet_Engine\Modules\Custom_Content_Types\DB|null
+	 */
+	protected static function get_cct_db( string $slug ) {
+		if ( ! function_exists( 'jet_engine' ) ) {
+			return null;
+		}
+
+		if ( ! class_exists( '\Jet_Engine\Modules\Custom_Content_Types\DB' ) ) {
+			require_once jet_engine()->modules->modules_path( 'custom-content-types/inc/db.php' );
+		}
+
+		return new \Jet_Engine\Modules\Custom_Content_Types\DB( $slug, array() );
 	}
 
 	protected static function infer_shift_timestamp( int $shift_id ): ?int {
