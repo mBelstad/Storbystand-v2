@@ -95,6 +95,14 @@ class Stb_CLI {
 				);
 			}
 		);
+
+		\WP_CLI::add_command(
+			'stb forms sync',
+			function () {
+				Stb_JetFormBuilder::force_sync( true );
+				\WP_CLI::success( 'JetFormBuilder forms synchronized.' );
+			}
+		);
 	}
 }
 

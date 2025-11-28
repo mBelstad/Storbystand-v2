@@ -27,6 +27,7 @@ require_once STB_CORE_PATH . 'includes/class-stb-elementor-templates.php';
 require_once STB_CORE_PATH . 'includes/class-stb-stats.php';
 require_once STB_CORE_PATH . 'includes/class-stb-notifications.php';
 require_once STB_CORE_PATH . 'includes/class-stb-data-seeder.php';
+require_once STB_CORE_PATH . 'includes/class-stb-jetformbuilder.php';
 
 Stb_Core::instance();
 Stb_JetEngine::init();
@@ -35,4 +36,5 @@ Stb_Query_Loop_Shortcode::init();
 Stb_Elementor_Templates::init();
 Stb_Stats::init();
 Stb_Notification_Service::init();
+Stb_JetFormBuilder::init();
 

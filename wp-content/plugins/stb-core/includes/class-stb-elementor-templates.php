@@ -7,10 +7,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Stb_Elementor_Templates {
 
 	const VERSION_OPTION = 'stb_core_elementor_templates_version';
-	const VERSION        = '2025-11-27-elementor-2';
+	const VERSION        = '2025-11-28-elementor-3';
 
 	public static function init(): void {
 		add_action( 'init', array( __CLASS__, 'maybe_sync' ), 30 );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_dashboard_styles' ) );
+	}
+
+	/**
+	 * Enqueue dashboard styles for Elementor templates.
+	 */
+	public static function enqueue_dashboard_styles(): void {
+		// Enqueue on all pages to ensure styles are available for Elementor templates.
+		wp_enqueue_style(
+			'stb-dashboard',
+			trailingslashit( STB_CORE_URL ) . 'assets/css/dashboard.css',
+			array(),
+			STB_CORE_VERSION
+		);
 	}
 
 	public static function maybe_sync(): void {
@@ -89,6 +103,33 @@ class Stb_Elementor_Templates {
 		return $existing ? intval( $existing[0] ) : null;
 	}
 
+	/**
+	 * Get JetFormBuilder form ID by slug.
+	 *
+	 * @param string $slug Form slug.
+	 * @return int Form ID or 0 if not found.
+	 */
+	protected static function get_form_id( string $slug ): int {
+		if ( class_exists( 'Stb_JetFormBuilder' ) ) {
+			$form_id = Stb_JetFormBuilder::get_form_id_by_slug( $slug );
+			return $form_id ?: 0;
+		}
+
+		// Fallback: query directly
+		$existing = get_posts(
+			array(
+				'post_type'   => 'jet-form-builder',
+				'post_status' => 'publish',
+				'numberposts' => 1,
+				'meta_key'    => '_stb_form_slug',
+				'meta_value'  => $slug,
+				'fields'      => 'ids',
+			)
+		);
+
+		return $existing ? intval( $existing[0] ) : 0;
+	}
+
 	protected static function definitions(): array {
 		return array(
 			array(
@@ -138,24 +179,16 @@ class Stb_Elementor_Templates {
 				__( 'Availability Planner', 'stb-core' ),
 				array(
 					self::text_widget(
-						__( 'Use the Availability form to set recurring preferences and let coordinators know when you are free. Embed the appropriate JetFormBuilder form here once published.', 'stb-core' )
+						__( 'Use the Availability form to set recurring preferences and let coordinators know when you are free.', 'stb-core' )
 					),
-					self::html_widget(
-						'<div class="stb-placeholder-card">' .
-						esc_html__( 'JetFormBuilder shortcode goes here (e.g., [jet_form_builder id="123"]).', 'stb-core' ) .
-						'</div>'
-					),
+					self::shortcode_widget( '[jet_fb_form form_id="' . self::get_form_id( 'availability_submit' ) . '"]' ),
 				),
 				__( 'Unavailability / Vacation', 'stb-core' ),
 				array(
 					self::text_widget(
 						__( 'Log full-day unavailability or vacations so planners can reroute shifts proactively.', 'stb-core' )
 					),
-					self::html_widget(
-						'<div class="stb-placeholder-card">' .
-						esc_html__( 'Insert the “Unavailability” JetFormBuilder form shortcode here.', 'stb-core' ) .
-						'</div>'
-					),
+					self::shortcode_widget( '[jet_fb_form form_id="' . self::get_form_id( 'unavailability_full_day' ) . '"]' ),
 				)
 			),
 			self::custom_section(
@@ -164,6 +197,7 @@ class Stb_Elementor_Templates {
 					self::text_widget(
 						__( 'Toggle email/push reminders from your profile. Installing the Storbystand app (PWA) ensures instant access and offline viewing of your roster.', 'stb-core' )
 					),
+					self::shortcode_widget( '[jet_fb_form form_id="' . self::get_form_id( 'notification_preferences' ) . '"]' ),
 					self::html_widget(
 						'<ul><li>' . esc_html__( 'Email reminders: always on for confirmed shifts.', 'stb-core' ) . '</li>' .
 						'<li>' . esc_html__( 'Push notifications: enable from the browser prompt to receive 24h/1h reminders.', 'stb-core' ) . '</li>' .

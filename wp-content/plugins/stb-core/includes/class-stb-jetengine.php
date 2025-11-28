@@ -152,7 +152,7 @@ class Stb_JetEngine {
 	}
 
 	/**
-	 * Make sure JetEngine creates/updates the physical CCT table.
+	 * Make sure JetEngine creates/updates the physical CCT table using native methods.
 	 *
 	 * @param array $definition Definition array.
 	 */
@@ -167,53 +167,22 @@ class Stb_JetEngine {
 			return;
 		}
 
-		$schema = $module->instance->manager->data->get_sql_columns_from_fields( $definition['meta_fields'] );
+		// Use JetEngine's native Data class to get schema and create DB instance.
+		$data_manager = $module->instance->manager->data;
+		$schema       = $data_manager->get_sql_columns_from_fields( $definition['meta_fields'] );
 
-		self::create_cct_table( $definition['slug'], $schema );
-	}
-
-	/**
-	 * Create JetEngine CCT table if it doesn't exist yet.
-	 *
-	 * @param string $slug   Content type slug.
-	 * @param array  $schema Column schema generated from meta fields.
-	 */
-	protected static function create_cct_table( string $slug, array $schema ): void {
-		global $wpdb;
-
-		$table = $wpdb->prefix . 'jet_cct_' . $slug;
-
-		$columns = array(
-			'_ID bigint(20) NOT NULL AUTO_INCREMENT',
-			'cct_status text',
-			'cct_created datetime',
-			'cct_modified datetime',
-			'cct_author_id bigint(20)',
-		);
-
-		if ( ! empty( $schema ) ) {
-			foreach ( $schema as $column => $description ) {
-				$definition = $description ? $description : 'text';
-				$columns[]  = sprintf( '%1$s %2$s', $column, $definition );
-			}
+		// Load JetEngine's DB class if not already loaded.
+		if ( ! class_exists( '\Jet_Engine\Modules\Custom_Content_Types\DB' ) ) {
+			require_once jet_engine()->modules->modules_path( 'custom-content-types/inc/db.php' );
 		}
 
-		$charset_collate = $wpdb->get_charset_collate();
-		$sql             = "CREATE TABLE $table (\n" . implode( ",\n", $columns ) . ",\nPRIMARY KEY (_ID)\n) $charset_collate;";
+		// Create DB instance using JetEngine's native class.
+		$db = new \Jet_Engine\Modules\Custom_Content_Types\DB( $definition['slug'], $schema );
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		dbDelta( $sql );
-	}
-
-	/**
-	 * Check if table exists.
-	 *
-	 * @param string $table_name Table name.
-	 */
-	protected static function table_exists( string $table_name ): bool {
-		global $wpdb;
-		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
-		return (bool) $found;
+		// Use JetEngine's native install_table() method if table doesn't exist.
+		if ( ! $db->is_table_exists() ) {
+			$db->install_table();
+		}
 	}
 
 	/**
